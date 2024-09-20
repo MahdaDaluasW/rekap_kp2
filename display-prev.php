@@ -1,5 +1,15 @@
 <?php
-include 'koneksi.php';
+// Koneksi ke database
+$hostname = "localhost";
+$username = "root";
+$password = "";
+$dbname = "rekap_kp";
+
+$conn = new mysqli($hostname, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+    die("Koneksi gagal: " . $conn->connect_error);
+}
 
 // Ambil status dari query parameter
 $status = isset($_GET['status']) ? $_GET['status'] : '';
@@ -13,40 +23,26 @@ if ($status === 'berhasil') {
 }
 
 // Ambil nama verifikator, instansi kerja, status usulan, dan tahun untuk dropdown
-$verifikatorQuery = "SELECT DISTINCT verifikator_nama FROM kenaikan_pangkat WHERE golongan_ruang_tmt1 NOT IN ('IV/c', 'IV/d', 'IV/e') ORDER BY verifikator_nama";
+$verifikatorQuery = "SELECT DISTINCT verifikator_nama FROM kenaikan_pangkat ORDER BY verifikator_nama";
 $verifikatorResult = $conn->query($verifikatorQuery);
 
-$instansiQuery = "SELECT DISTINCT instansi_kerja FROM kenaikan_pangkat WHERE golongan_ruang_tmt1 NOT IN ('IV/c', 'IV/d', 'IV/e') ORDER BY instansi_kerja";
+$instansiQuery = "SELECT DISTINCT instansi_kerja FROM kenaikan_pangkat ORDER BY instansi_kerja";
 $instansiResult = $conn->query($instansiQuery);
 
-$statusUsulanQuery = "SELECT DISTINCT status_usulan FROM kenaikan_pangkat WHERE golongan_ruang_tmt1 NOT IN ('IV/c', 'IV/d', 'IV/e') ORDER BY status_usulan";
+$statusUsulanQuery = "SELECT DISTINCT status_usulan FROM kenaikan_pangkat ORDER BY status_usulan";
 $statusUsulanResult = $conn->query($statusUsulanQuery);
 
-$tahunQuery = "SELECT DISTINCT YEAR(tgl_ttd_pertek) AS tahun FROM kenaikan_pangkat WHERE golongan_ruang_tmt1 NOT IN ('IV/c', 'IV/d', 'IV/e') ORDER BY tahun";
+$tahunQuery = "SELECT DISTINCT YEAR(tgl_ttd_pertek) AS tahun FROM kenaikan_pangkat ORDER BY tahun";
 $tahunResult = $conn->query($tahunQuery);
-
-$bulanQuery = "SELECT DISTINCT MONTH(tgl_ttd_pertek) AS bulan FROM kenaikan_pangkat WHERE golongan_ruang_tmt1 NOT IN ('IV/c', 'IV/d', 'IV/e') ORDER BY bulan";
-$bulanResult = $conn->query($bulanQuery);
-
-// Fungsi untuk konversi angka bulan menjadi nama bulan
-function getNamaBulan($bulan) {
-    $namaBulan = [
-        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-    ];
-    return isset($namaBulan[$bulan]) ? $namaBulan[$bulan] : '';
-}
 
 // Filter data
 $filterVerifikator = isset($_POST['verifikator']) ? $_POST['verifikator'] : '';
 $filterInstansi = isset($_POST['instansi']) ? $_POST['instansi'] : '';
 $filterStatusUsulan = isset($_POST['status_usulan']) ? $_POST['status_usulan'] : '';
 $filterTahun = isset($_POST['tahun']) ? $_POST['tahun'] : '';
-$filterBulan = isset($_POST['bulan']) ? $_POST['bulan'] : '';
 
 // Query untuk total data verifikasi berdasarkan filter
-$totalDataQuery = "SELECT COUNT(*) AS total_data FROM kenaikan_pangkat WHERE golongan_ruang_tmt1 NOT IN ('IV/c', 'IV/d', 'IV/e')  AND 1=1";
+$totalDataQuery = "SELECT COUNT(*) AS total_data FROM kenaikan_pangkat WHERE 1=1";
 if ($filterVerifikator) {
     $totalDataQuery .= " AND verifikator_nama = '" . $conn->real_escape_string($filterVerifikator) . "'";
 }
@@ -59,28 +55,22 @@ if ($filterStatusUsulan) {
 if ($filterTahun) {
     $totalDataQuery .= " AND YEAR(tgl_ttd_pertek) = '" . $conn->real_escape_string($filterTahun) . "'";
 }
-if ($filterBulan) {
-    $totalDataQuery .= " AND MONTH(tgl_ttd_pertek) = '" . $conn->real_escape_string($filterBulan) . "'";
-}
 $totalDataResult = $conn->query($totalDataQuery);
 $totalData = $totalDataResult->fetch_assoc()['total_data'];
 
 // Query untuk total verifikasi per instansi (semua verifikator)
-$instansiTotalQuery = "SELECT instansi_kerja, COUNT(*) AS total_verifikasi FROM kenaikan_pangkat WHERE golongan_ruang_tmt1 NOT IN ('IV/c', 'IV/d', 'IV/e') AND 1=1";
+$instansiTotalQuery = "SELECT instansi_kerja, COUNT(*) AS total_verifikasi FROM kenaikan_pangkat WHERE 1=1";
 if ($filterStatusUsulan) {
     $instansiTotalQuery .= " AND status_usulan = '" . $conn->real_escape_string($filterStatusUsulan) . "'";
 }
 if ($filterTahun) {
     $instansiTotalQuery .= " AND YEAR(tgl_ttd_pertek) = '" . $conn->real_escape_string($filterTahun) . "'";
 }
-if ($filterBulan) {
-    $instansiTotalQuery .= " AND MONTH(tgl_ttd_pertek) = '" . $conn->real_escape_string($filterBulan) . "'";
-}
 $instansiTotalQuery .= " GROUP BY instansi_kerja ORDER BY total_verifikasi DESC";
 $instansiTotalResult = $conn->query($instansiTotalQuery);
 
 // Query untuk total verifikasi per instansi berdasarkan filter verifikator
-$instansiVerifikatorQuery = "SELECT instansi_kerja, COUNT(*) AS total_verifikasi_per_verifikator FROM kenaikan_pangkat WHERE golongan_ruang_tmt1 NOT IN ('IV/c', 'IV/d', 'IV/e') AND 1=1";
+$instansiVerifikatorQuery = "SELECT instansi_kerja, COUNT(*) AS total_verifikasi_per_verifikator FROM kenaikan_pangkat WHERE 1=1";
 if ($filterVerifikator) {
     $instansiVerifikatorQuery .= " AND verifikator_nama = '" . $conn->real_escape_string($filterVerifikator) . "'";
 }
@@ -89,9 +79,6 @@ if ($filterStatusUsulan) {
 }
 if ($filterTahun) {
     $instansiVerifikatorQuery .= " AND YEAR(tgl_ttd_pertek) = '" . $conn->real_escape_string($filterTahun) . "'";
-}
-if ($filterBulan) {
-    $instansiVerifikatorQuery .= " AND MONTH(tgl_ttd_pertek) = '" . $conn->real_escape_string($filterBulan) . "'";
 }
 $instansiVerifikatorQuery .= " GROUP BY instansi_kerja ORDER BY total_verifikasi_per_verifikator DESC";
 $instansiVerifikatorResult = $conn->query($instansiVerifikatorQuery);
@@ -102,7 +89,6 @@ $filterDescription .= $filterVerifikator ? "Nama Verifikator: " . htmlspecialcha
 $filterDescription .= $filterInstansi ? "Instansi Kerja: " . htmlspecialchars($filterInstansi) . "; " : "";
 $filterDescription .= $filterStatusUsulan ? "Status Usulan: " . htmlspecialchars($filterStatusUsulan) . "; " : "";
 $filterDescription .= $filterTahun ? "Tahun: " . htmlspecialchars($filterTahun) . ";" : "";
-$filterDescription .= $filterBulan ? "Bulan: " . htmlspecialchars(getNamaBulan($filterBulan)) . "; " : "";
 
 if (empty($filterDescription)) {
     $filterDescription = "Tidak ada filter aktif.";
@@ -115,7 +101,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'getInstansiDetails') {
     $verifikator_nama = isset($_GET['verifikator_nama']) ? $_GET['verifikator_nama'] : '';
 
     // Query untuk mendapatkan nama, NIP, dan alasan tolak dokumen berdasarkan instansi dan verifikator
-    $detailsQuery = "SELECT nama, nip, alasan_tolak FROM kenaikan_pangkat WHERE golongan_ruang_tmt1 NOT IN ('IV/c', 'IV/d', 'IV/e') AND 1=1";
+    $detailsQuery = "SELECT nama, nip, alasan_tolak FROM kenaikan_pangkat WHERE 1=1";
     
     if ($instansi_kerja) {
         $detailsQuery .= " AND instansi_kerja = '" . $conn->real_escape_string($instansi_kerja) . "'";
@@ -258,7 +244,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'getInstansiDetails') {
 <body>
 
     <h1>Data Verifikasi Kenaikan Pangkat</h1>
-    <a href="import.php" class="button-link">Upload Excel</a>
+    <a href="index.php" class="button-link">Home</a>
     <?php echo $statusMessage; ?>
 
     <div class="filter-form">
@@ -299,16 +285,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'getInstansiDetails') {
                 <?php while ($row = $tahunResult->fetch_assoc()): ?>
                     <option value="<?php echo htmlspecialchars($row['tahun']); ?>" <?php echo $filterTahun == $row['tahun'] ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($row['tahun']); ?>
-                    </option>
-                <?php endwhile; ?>
-            </select>
-
-            <label for="bulan">Bulan Verifikasi:</label>
-            <select name="bulan" id="bulan">
-                <option value="">Semua</option>
-                <?php while ($row = $bulanResult->fetch_assoc()): ?>
-                    <option value="<?php echo htmlspecialchars($row['bulan']); ?>" <?php echo $filterBulan == $row['bulan'] ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($row['bulan']); ?>
                     </option>
                 <?php endwhile; ?>
             </select>
